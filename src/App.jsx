@@ -545,8 +545,8 @@ function Conversion({ d, respuestas, onSend }) {
       </p>
       <div style={{ background: C.card, border: `1px solid ${C.line}`, borderRadius: 16, padding: 22, display: "flex", flexDirection: "column", gap: 14 }}>
         {[
-          ["nombre", "Tu nombre", "Ej. Maximiliano González"],
-          ["empresa", "Empresa", "Ej. Banco mayorista S.A."],
+          ["nombre", "Tu nombre", "Nombre y apellido"],
+   ["empresa", "Empresa", "Nombre de tu empresa"],
           ["email", "Email corporativo", "vos@empresa.com"],
         ].map(([k, label, ph]) => (
           <label key={k} style={{ display: "flex", flexDirection: "column", gap: 6 }}>
