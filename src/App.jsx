@@ -77,13 +77,56 @@ const DOCENTES = [
     porque: "Complemento opcional si tu equipo necesita autonomía en métricas e impacto.",
     formato: "Digital modular",
   },
+  {
+    id: "ciberseguridad",
+    uni: "UTN",
+    color: "#B23B3B",
+    ruta: "Ciberseguridad ofensiva y defensa de infraestructura",
+    coordinador: "Coord. de Ing. en Sistemas de Información",
+    modulos: 4,
+    horas: 36,
+    desde: 8400,
+    sello: "Universidad Tecnológica Nacional",
+    finalizacion: 90,
+    casos: 2,
+    match: 95,
+    porque: "Cubre hardening, análisis de vulnerabilidades y respuesta a incidentes sobre tu propia infraestructura, no sobre laboratorios genéricos.",
+    formato: "Híbrido · 2 módulos in situ + 2 digitales",
+  },
+  {
+    id: "machine-learning",
+    uni: "UBA",
+    color: "#1F6E6B",
+    ruta: "Machine Learning aplicado a problemas de negocio",
+    coordinador: "Coord. de Ciencias de la Computación",
+    modulos: 4,
+    horas: 32,
+    desde: 8900,
+    sello: "Universidad de Buenos Aires",
+    finalizacion: 87,
+    casos: 2,
+    match: 93,
+    porque: "Entrena a tu equipo en modelos sobre tus propios datasets, con foco en puesta en producción y no solo en teoría.",
+    formato: "Híbrido · 1 módulo in situ + 3 digitales",
+  },
 ];
+
+// Mapea cada rol del diagnóstico a las rutas relevantes (IDs del catálogo).
+// El orden define cuál aparece como "mejor afinidad".
+const RUTAS_POR_ROL = {
+  "QA / Testing": ["qa-bank", "ba-auto", "data-ops"],
+  "Business Analysis": ["ba-auto", "data-ops", "qa-bank"],
+  "Datos / Reporting": ["data-ops", "machine-learning", "ba-auto"],
+  "Ciberseguridad": ["ciberseguridad", "qa-bank", "data-ops"],
+  "Machine Learning": ["machine-learning", "data-ops", "ciberseguridad"],
+  "Otro perfil técnico": ["qa-bank", "ba-auto", "data-ops"],
+};
 
 const PREGUNTAS = [
   {
     k: "rol",
     bot: "Hola 👋 Soy el asistente de diagnóstico de Ed-Link. En 4 preguntas te armo una ruta de capacitación a medida con aval de una universidad nacional. Para empezar: ¿qué rol o equipo necesitás fortalecer?",
-    opciones: ["QA / Testing", "Business Analysis", "Datos / Reporting", "Otro perfil técnico"],
+    opciones: ["QA / Testing", "Business Analysis", "Datos / Reporting", "Ciberseguridad", "Machine Learning", "Otro perfil técnico"],
   },
   {
     k: "brecha",
@@ -380,6 +423,9 @@ function Analizando({ onDone }) {
 // --- Pantalla 4: Shortlist curada (NO swipe — ruta con trust layer) ---------
 function Shortlist({ respuestas, onPick }) {
   const m = useIsMobile();
+  // Selecciona las rutas según el rol elegido; si no hay match, usa las 3 por defecto.
+  const ids = RUTAS_POR_ROL[respuestas.rol] || RUTAS_POR_ROL["Otro perfil técnico"];
+  const rutas = ids.map((id) => DOCENTES.find((x) => x.id === id)).filter(Boolean);
   return (
     <div className="fu">
       <div style={{ marginBottom: 22 }}>
@@ -391,7 +437,7 @@ function Shortlist({ respuestas, onPick }) {
       </div>
 
       <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-        {DOCENTES.map((d, i) => (
+        {rutas.map((d, i) => (
           <div key={d.id} className="card-hover" onClick={() => onPick(d)}
             style={{ background: C.card, border: `1px solid ${C.line}`, borderRadius: 16, padding: 20, cursor: "pointer", display: "flex", gap: m ? 12 : 18, alignItems: "flex-start", position: "relative", flexWrap: m ? "wrap" : "nowrap" }}>
             {i === 0 && (
