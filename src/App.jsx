@@ -575,8 +575,7 @@ function Gracias({ d, onMetrics, onReset }) {
       <div style={{ width: 64, height: 64, margin: "0 auto 22px", borderRadius: 64, background: C.goodSoft, color: C.good, display: "grid", placeItems: "center", fontSize: 30 }}>✓</div>
       <h2 style={{ fontFamily: FONT_DISPLAY, fontSize: 28, fontWeight: 600, margin: "0 0 12px", letterSpacing: -0.4 }}>Listo. Recibimos tu solicitud.</h2>
       <p style={{ fontSize: 15.5, color: C.slate, lineHeight: 1.55, margin: "0 0 28px" }}>
-        Un coordinador de <b style={{ color: C.ink }}>{d?.sello}</b> te escribe dentro de las próximas 48 horas para ajustar la ruta <b style={{ color: C.ink }}>“{d?.ruta}”</b> a tu equipo.
-      </p>
+Un coordinador de <b style={{ color: C.ink }}>{d?.sello}</b> te escribe dentro de las próximas 48 horas para ajustar la ruta <b style={{ color: C.ink }}>"{d?.ruta}"</b> a tu equipo.      </p>
       <div style={{ display: "flex", gap: 12, justifyContent: "center", flexWrap: "wrap" }}>
         <button className="btn" onClick={onReset} style={{ background: C.ink, color: C.paper, padding: "12px 22px", borderRadius: 11, fontWeight: 600, fontSize: 14.5 }}>Probar otro diagnóstico</button>
         <button className="btn" onClick={onMetrics} style={{ background: C.brassSoft, color: C.brass, padding: "12px 22px", borderRadius: 11, fontWeight: 600, fontSize: 14.5 }}>Ver métricas del experimento →</button>
