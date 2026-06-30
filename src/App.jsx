@@ -156,14 +156,6 @@ const EXTRA = {
   },
 };
 
-// Modelo de negocio: suscripción mensual por equipo (no pago único).
-// El "desde" del catálogo representa el valor anual del trayecto;
-// lo dividimos en 12 para mostrar el abono mensual por equipo.
-const MESES_SUSCRIPCION = 12;
-function mensual(montoAnual) {
-  return Math.round(montoAnual / MESES_SUSCRIPCION / 10) * 10; // redondeo a la decena
-}
-
 // Etiqueta de modalidad híbrida según el split online/presencial.
 function splitLabel(id) {
   const e = EXTRA[id];
@@ -171,6 +163,56 @@ function splitLabel(id) {
   if (e.presencial === 0) return "100% online";
   if (e.online === 0) return "100% presencial";
   return `${e.online}% online · ${e.presencial}% presencial`;
+}
+
+// ============================================================================
+// MODELO DE NEGOCIO: suscripción anual por créditos canjeables.
+// La empresa contrata un plan, recibe créditos y los destina a los cursos
+// que la plataforma le sugiere. Cada curso cuesta créditos según duración,
+// expertise del docente y modalidad (remoto / híbrido / in situ).
+const PLANES = [
+  {
+    id: "starter", nombre: "Starter", precio: 4900, creditos: 50, destacado: false,
+    pitch: "Para equipos que arrancan su primer trayecto formativo.",
+    incluye: [
+      "Diagnóstico de necesidades (LNA)",
+      "Cursos 100% remotos",
+      "1 ruta de aprendizaje activa",
+      "Certificación con aval universitario",
+    ],
+  },
+  {
+    id: "professional", nombre: "Professional", precio: 9500, creditos: 120, destacado: true,
+    pitch: "El plan más elegido por empresas medianas con varias áreas técnicas.",
+    incluye: [
+      "Todo lo de Starter",
+      "Cursos híbridos (remoto + presencial)",
+      "Hasta 3 rutas simultáneas",
+      "Reportes de avance del equipo",
+      "Soporte de un coordinador asignado",
+    ],
+  },
+  {
+    id: "enterprise", nombre: "Enterprise", precio: 18000, creditos: 260, destacado: false,
+    pitch: "Para organizaciones que necesitan intervención profunda y a medida.",
+    incluye: [
+      "Todo lo de Professional",
+      "Módulos in situ en planta u oficina",
+      "Rutas ilimitadas",
+      "Coordinador dedicado",
+      "Diseño de casos a medida (co-creación)",
+    ],
+  },
+];
+
+// Costo en créditos de cada curso, derivado de horas, expertise y modalidad.
+// Se calcula sobre los datos de la ruta para mantener coherencia.
+function costoCreditos(d) {
+  const ex = EXTRA[d.id] || {};
+  let base = Math.round(d.horas / 2);            // duración
+  if (d.match >= 93) base += 8;                  // expertise (docente senior / alta afinidad)
+  if ((ex.presencial || 0) > 0) base += 10;      // modalidad híbrida cuesta más que 100% remoto
+  return base;
 }
 
 // Mapea cada rol del diagnóstico a las rutas relevantes (IDs del catálogo).
@@ -265,10 +307,12 @@ function useIsMobile() {
 }
 
 export default function App() {
-  const [screen, setScreen] = useState("landing"); // landing | chat | analizando | shortlist | detalle | conversion | gracias | metrics
+  const [screen, setScreen] = useState("landing"); // landing | chat | analizando | shortlist | detalle | conversion | gracias | metrics | planes
   const [step, setStep] = useState(0);
   const [respuestas, setRespuestas] = useState({});
   const [seleccion, setSeleccion] = useState(null);
+  const [planActivo, setPlanActivo] = useState(null); // plan de suscripción elegido
+  const [creditosUsados, setCreditosUsados] = useState(0);
   const [log, setLog] = useState([]); // métricas Wizard of Oz
 
   const track = (evento) =>
@@ -322,13 +366,23 @@ export default function App() {
         {screen === "shortlist" && (
           <Shortlist
             respuestas={respuestas}
+            planActivo={planActivo}
+            creditosUsados={creditosUsados}
+            onVerPlanes={() => setScreen("planes")}
             onPick={(d) => { setSeleccion(d); track(`Abrió ruta: ${d.uni}`); setScreen("detalle"); }}
           />
         )}
-        {screen === "detalle" && (
-          <Detalle d={seleccion} onBack={() => setScreen("shortlist")} onConvert={() => { track(`★ Solicitó reunión: ${seleccion.uni}`); setScreen("conversion"); }} />
+        {screen === "planes" && (
+          <Planes
+            planActivo={planActivo}
+            onElegir={(p) => { setPlanActivo(p); track(`Eligió plan: ${p.nombre}`); setScreen("shortlist"); }}
+            onBack={() => setScreen("shortlist")}
+          />
         )}
-        {screen === "conversion" && <Conversion d={seleccion} respuestas={respuestas} onBack={() => setScreen("detalle")} onSend={() => { track("★★ Envió solicitud (conversión)"); setScreen("gracias"); }} />}
+        {screen === "detalle" && (
+          <Detalle d={seleccion} planActivo={planActivo} onBack={() => setScreen("shortlist")} onConvert={() => { track(`★ Solicitó reunión: ${seleccion.uni}`); setScreen("conversion"); }} />
+        )}
+        {screen === "conversion" && <Conversion d={seleccion} respuestas={respuestas} planActivo={planActivo} onBack={() => setScreen("detalle")} onSend={() => { track("★★ Envió solicitud (conversión)"); setScreen("gracias"); }} />}
         {screen === "gracias" && <Gracias d={seleccion} onMetrics={() => setScreen("metrics")} onReset={reset} />}
         {screen === "metrics" && <Metrics log={log} onBack={() => setScreen("landing")} />}
       </Shell>
@@ -337,7 +391,7 @@ export default function App() {
 }
 
 // --- Marco / barra superior -------------------------------------------------
-function Shell({ children, screen, reset, log }) {
+function Shell({ children, screen, setScreen, reset, log }) {
   const m = useIsMobile();
   const showProgress = ["chat", "analizando", "shortlist", "detalle", "conversion"].includes(screen);
   const order = ["chat", "analizando", "shortlist", "detalle", "conversion"];
@@ -350,7 +404,7 @@ function Shell({ children, screen, reset, log }) {
           <span style={{ fontFamily: FONT_DISPLAY, fontWeight: 600, fontSize: 19, letterSpacing: -0.3 }}>Ed-Link</span>
           <span style={{ fontSize: 11, color: C.slate, border: `1px solid ${C.line}`, padding: "2px 7px", borderRadius: 20, fontWeight: 600 }}>MVP · prototipo</span>
         </button>
-        {!m && <span style={{ fontSize: 12.5, color: C.slate, fontWeight: 500 }}>El puente entre la universidad pública y tu equipo</span>}
+        <button className="btn" onClick={() => setScreen("planes")} style={{ background: "none", color: C.brass, fontSize: 13.5, fontWeight: 600, padding: "6px 10px", border: `1px solid ${C.brass}55`, borderRadius: 20 }}>Planes y créditos</button>
       </header>
 
       {showProgress && (
@@ -579,13 +633,34 @@ function Analizando({ onDone }) {
 }
 
 // --- Pantalla 4: Shortlist curada (NO swipe — ruta con trust layer) ---------
-function Shortlist({ respuestas, onPick }) {
+function Shortlist({ respuestas, onPick, onVerPlanes, planActivo, creditosUsados }) {
   const m = useIsMobile();
   // Selecciona las rutas según el rol elegido; si no hay match, usa las 3 por defecto.
   const ids = RUTAS_POR_ROL[respuestas.rol] || RUTAS_POR_ROL["Otro perfil técnico"];
   const rutas = ids.map((id) => DOCENTES.find((x) => x.id === id)).filter(Boolean);
+  const restantes = planActivo ? planActivo.creditos - creditosUsados : null;
   return (
     <div className="fu">
+      {/* Panel de créditos disponibles */}
+      <div style={{ display: "flex", alignItems: "center", gap: 14, background: planActivo ? C.ink : C.brassSoft, color: planActivo ? C.paper : C.ink, borderRadius: 14, padding: "14px 18px", marginBottom: 20, flexWrap: "wrap" }}>
+        {planActivo ? (
+          <>
+            <div>
+              <div style={{ fontSize: 11, opacity: .7 }}>Plan {planActivo.nombre} · créditos disponibles</div>
+              <div style={{ fontFamily: FONT_DISPLAY, fontSize: 26, fontWeight: 700 }}>{restantes} <span style={{ fontSize: 14, opacity: .7 }}>de {planActivo.creditos}</span></div>
+            </div>
+            <button className="btn" onClick={onVerPlanes} style={{ marginLeft: "auto", background: "rgba(255,255,255,.15)", color: C.paper, border: "1px solid rgba(255,255,255,.3)", borderRadius: 10, padding: "9px 16px", fontSize: 13, fontWeight: 600 }}>Cambiar plan</button>
+          </>
+        ) : (
+          <>
+            <div style={{ fontSize: 13.5, fontWeight: 500, flex: 1, minWidth: 200 }}>
+              Elegí un plan anual para destinar créditos a estos cursos.
+            </div>
+            <button className="btn" onClick={onVerPlanes} style={{ background: C.ink, color: C.paper, border: "none", borderRadius: 10, padding: "10px 18px", fontSize: 13.5, fontWeight: 600 }}>Ver planes y créditos →</button>
+          </>
+        )}
+      </div>
+
       <div style={{ marginBottom: 22 }}>
         <h2 style={{ fontFamily: FONT_DISPLAY, fontSize: m ? 24 : 30, fontWeight: 600, letterSpacing: -0.5, margin: "0 0 8px" }}>Tu ruta recomendada</h2>
         <p style={{ fontSize: m ? 14 : 15, color: C.slate, margin: 0, lineHeight: 1.5 }}>
@@ -628,10 +703,9 @@ function Shortlist({ respuestas, onPick }) {
 
             <div style={{ textAlign: m ? "left" : "right", flexShrink: 0, alignSelf: "stretch", display: "flex", flexDirection: m ? "row" : "column", justifyContent: "space-between", alignItems: m ? "center" : "flex-end", gap: m ? 10 : 0, width: m ? "100%" : "auto", borderTop: m ? `1px solid ${C.line}` : "none", paddingTop: m ? 12 : 0 }}>
               <div>
-                <span style={{ fontSize: 11, color: C.slate }}>desde </span>
-                <span style={{ fontFamily: FONT_DISPLAY, fontSize: 22, fontWeight: 700, color: C.ink }}>US${mensual(d.desde).toLocaleString("es-AR")}</span>
-                <span style={{ fontSize: 11, color: C.slate }}>/mes</span>
-                {d.desde < 10000 && <div style={{ fontSize: 10.5, color: C.good, fontWeight: 600 }}>✓ contratación directa</div>}
+                <span style={{ fontFamily: FONT_DISPLAY, fontSize: 24, fontWeight: 700, color: C.ink }}>{costoCreditos(d)}</span>
+                <span style={{ fontSize: 12, color: C.slate, fontWeight: 600 }}> créditos</span>
+                <div style={{ fontSize: 10.5, color: C.slate }}>{d.horas}h · {splitLabel(d.id)}</div>
               </div>
               <div style={{ color: C.brass, fontWeight: 600, fontSize: 13, marginTop: m ? 0 : 12 }}>Ver ruta →</div>
             </div>
@@ -640,7 +714,7 @@ function Shortlist({ respuestas, onPick }) {
       </div>
 
       <p style={{ fontSize: 12, color: C.slate, marginTop: 18, textAlign: "center" }}>
-        Las opciones por debajo de USD 10.000 califican para contratación directa sin compulsa.
+        Los cursos se abonan con los créditos de tu plan anual. <span style={{ color: C.brass, fontWeight: 600, cursor: "pointer" }} onClick={onVerPlanes}>Ver planes y créditos →</span>
       </p>
     </div>
   );
@@ -654,8 +728,56 @@ function Stat({ label, value, color }) {
   );
 }
 
+// --- Pantalla: Planes y créditos --------------------------------------------
+function Planes({ planActivo, onElegir, onBack }) {
+  const m = useIsMobile();
+  return (
+    <div className="fu">
+      <button className="btn" onClick={onBack} style={{ background: "none", color: C.slate, fontSize: 13.5, padding: 0, marginBottom: 16, fontWeight: 600 }}>← Volver</button>
+      <h2 style={{ fontFamily: FONT_DISPLAY, fontSize: m ? 26 : 32, fontWeight: 600, letterSpacing: -0.5, margin: "0 0 8px" }}>Planes de suscripción anual</h2>
+      <p style={{ fontSize: m ? 14 : 15.5, color: C.slate, margin: "0 0 26px", lineHeight: 1.5, maxWidth: 640 }}>
+        Cada plan te da una bolsa de <b style={{ color: C.ink }}>créditos anuales</b> que destinás a los cursos que la plataforma te sugiere. Los cursos cuestan más o menos créditos según su duración, la experiencia del docente y la modalidad (remoto o híbrido).
+      </p>
+
+      <div style={{ display: "grid", gridTemplateColumns: m ? "1fr" : "repeat(3,1fr)", gap: 16, alignItems: "start" }}>
+        {PLANES.map((p) => {
+          const activo = planActivo?.id === p.id;
+          return (
+            <div key={p.id} style={{ background: C.card, border: p.destacado ? `2px solid ${C.ink}` : `1px solid ${C.line}`, borderRadius: 18, padding: 22, position: "relative", boxShadow: p.destacado ? "0 12px 30px rgba(27,38,63,.12)" : "none" }}>
+              {p.destacado && <div style={{ position: "absolute", top: -11, left: 22, background: C.zest, color: C.ink, fontSize: 11, fontWeight: 700, padding: "3px 12px", borderRadius: 20 }}>★ MÁS ELEGIDO</div>}
+              <div style={{ fontFamily: FONT_DISPLAY, fontSize: 22, fontWeight: 600 }}>{p.nombre}</div>
+              <div style={{ fontSize: 12.5, color: C.slate, margin: "4px 0 14px", lineHeight: 1.4, minHeight: 34 }}>{p.pitch}</div>
+              <div style={{ display: "flex", alignItems: "baseline", gap: 4 }}>
+                <span style={{ fontFamily: FONT_DISPLAY, fontSize: 32, fontWeight: 700, color: C.ink }}>US${p.precio.toLocaleString("es-AR")}</span>
+                <span style={{ fontSize: 13, color: C.slate }}>/año</span>
+              </div>
+              <div style={{ display: "inline-block", background: C.brassSoft, color: C.brass, fontSize: 13, fontWeight: 700, padding: "4px 12px", borderRadius: 20, margin: "10px 0 16px" }}>{p.creditos} créditos / año</div>
+              <div style={{ display: "flex", flexDirection: "column", gap: 8, marginBottom: 18 }}>
+                {p.incluye.map((it, i) => (
+                  <div key={i} style={{ display: "flex", gap: 8, fontSize: 13, lineHeight: 1.4 }}>
+                    <span style={{ color: C.good, fontWeight: 700, flexShrink: 0 }}>✓</span>
+                    <span style={{ color: C.ink }}>{it}</span>
+                  </div>
+                ))}
+              </div>
+              <button className="btn" onClick={() => onElegir(p)} disabled={activo}
+                style={{ width: "100%", background: activo ? C.good : (p.destacado ? C.ink : C.card), color: activo || p.destacado ? C.paper : C.ink, border: activo || p.destacado ? "none" : `1.5px solid ${C.line}`, borderRadius: 11, padding: "12px", fontSize: 14.5, fontWeight: 600, cursor: activo ? "default" : "pointer" }}>
+                {activo ? "✓ Plan actual" : "Elegir este plan"}
+              </button>
+            </div>
+          );
+        })}
+      </div>
+
+      <p style={{ fontSize: 11.5, color: C.slate, marginTop: 18, textAlign: "center" }}>
+        Los créditos no usados pueden trasladarse al ciclo siguiente. Los planes por debajo de USD 10.000 anuales califican para contratación directa.
+      </p>
+    </div>
+  );
+}
+
 // --- Pantalla 5: Detalle de la ruta -----------------------------------------
-function Detalle({ d, onBack, onConvert }) {
+function Detalle({ d, planActivo, onBack, onConvert }) {
   const m = useIsMobile();
   const [casosAbiertos, setCasosAbiertos] = useState(false);
   if (!d) return null;
@@ -756,15 +878,24 @@ function Detalle({ d, onBack, onConvert }) {
 
         <div>
           <div style={{ background: C.card, border: `1px solid ${C.line}`, borderRadius: 14, padding: 18, position: m ? "static" : "sticky", top: 16 }}>
-            <div style={{ fontSize: 12, color: C.slate }}>Suscripción mensual por equipo</div>
-            <div style={{ fontFamily: FONT_DISPLAY, fontSize: 30, fontWeight: 700 }}>US${mensual(d.desde).toLocaleString("es-AR")}<span style={{ fontSize: 15, color: C.slate, fontWeight: 400 }}>/mes</span></div>
-            <div style={{ fontSize: 11.5, color: C.slate, marginTop: 2 }}>Equivale a US${d.desde.toLocaleString("es-AR")}/año · facturación recurrente</div>
-            {d.desde < 10000 && <div style={{ fontSize: 12, color: C.good, fontWeight: 600, marginTop: 6, marginBottom: 12 }}>✓ Bajo el umbral de USD 10.000 anuales: contratación directa</div>}
+            <div style={{ fontSize: 12, color: C.slate }}>Costo de esta ruta</div>
+            <div style={{ fontFamily: FONT_DISPLAY, fontSize: 32, fontWeight: 700 }}>{costoCreditos(d)} <span style={{ fontSize: 16, color: C.slate, fontWeight: 400 }}>créditos</span></div>
+            <div style={{ fontSize: 11.5, color: C.slate, marginTop: 4 }}>Costo según duración ({d.horas}h), expertise del docente y modalidad ({splitLabel(d.id)}).</div>
 
-            <div style={{ borderTop: `1px solid ${C.line}`, margin: "12px 0", paddingTop: 12, display: "flex", flexDirection: "column", gap: 9, fontSize: 13 }}>
+            {planActivo ? (
+              <div style={{ background: C.tealSoft, borderRadius: 10, padding: "10px 12px", marginTop: 12, fontSize: 12.5 }}>
+                <b style={{ color: C.teal }}>Plan {planActivo.nombre}:</b> te quedan {planActivo.creditos} créditos. Esta ruta consume {costoCreditos(d)}.
+              </div>
+            ) : (
+              <div style={{ background: C.brassSoft, borderRadius: 10, padding: "10px 12px", marginTop: 12, fontSize: 12.5, color: C.ink }}>
+                Necesitás un plan activo para destinar créditos a esta ruta.
+              </div>
+            )}
+
+            <div style={{ borderTop: `1px solid ${C.line}`, margin: "14px 0 12px", paddingTop: 12, display: "flex", flexDirection: "column", gap: 9, fontSize: 13 }}>
               <Row k="Afinidad con tu caso" v={`${d.match}%`} />
               <Row k="Tasa de finalización" v={`${d.finalizacion}%`} />
-              <Row k="Empresas que ya lo hicieron" v={d.casos} />
+              <Row k="Personas por ciclo" v={ex.personas} />
               <Row k="Carga horaria" v={`${d.horas} horas`} />
             </div>
 
@@ -792,7 +923,7 @@ function Row({ k, v }) {
 // REEMPLAZÁ "TU_ID" por tu ID de formulario de https://formspree.io (gratis).
 const FORMSPREE_ENDPOINT = "https://formspree.io/f/xaqgbvzp";
 
-function Conversion({ d, respuestas, onBack, onSend }) {
+function Conversion({ d, respuestas, planActivo, onBack, onSend }) {
   const [f, setF] = useState({ nombre: "", empresa: "", email: "" });
   const [enviando, setEnviando] = useState(false);
   const [error, setError] = useState("");
@@ -819,6 +950,8 @@ function Conversion({ d, respuestas, onBack, onSend }) {
           brecha: respuestas?.brecha,
           personas: respuestas?.personas,
           presupuesto: respuestas?.presupuesto,
+          plan_elegido: planActivo?.nombre || "sin plan",
+          costo_creditos_ruta: d ? costoCreditos(d) : null,
         }),
       });
 
