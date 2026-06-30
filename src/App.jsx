@@ -9,21 +9,23 @@ import React, { useState, useEffect, useRef } from "react";
 // ============================================================================
 
 const C = {
-  ink: "#13212E",        // azul petróleo profundo (institucional)
-  paper: "#F7F4EC",      // hueso cálido
+  ink: "#1B263F",        // Deep Navy — texto, botones, logo
+  paper: "#FEFFFD",      // Ivory Whisper — fondo
   card: "#FFFFFF",
-  line: "#E3DDCE",
-  brass: "#B5762A",      // bronce — acento universitario / sello
-  brassSoft: "#F0E2CC",
-  teal: "#1F6E6B",       // verde técnico (industria/operativo)
-  tealSoft: "#DDEBEA",
-  slate: "#5A6B78",
-  good: "#2E7D52",
-  goodSoft: "#DCEFE3",
+  line: "#E4E7E2",       // borde suave
+  brass: "#204F56",      // Ocean Teal — acento institucional / sello
+  brassSoft: "#DCE8E8",  // Ocean Teal suavizado para fondos
+  teal: "#204F56",       // Ocean Teal — verde técnico/industria
+  tealSoft: "#DCE8E8",
+  slate: "#5C6B7A",      // gris azulado, texto secundario
+  good: "#204F56",       // Ocean Teal como "éxito" (sobrio)
+  goodSoft: "#DCE8E8",
+  wisteria: "#9EB8F9",   // Sky Mist — acento secundario / dato de afinidad
+  zest: "#E6FD53",       // Lemon Zest — acento de energía / CTA destacado
 };
 
-const FONT_DISPLAY = "'Fraunces', Georgia, serif";
-const FONT_BODY = "'Inter', system-ui, sans-serif";
+const FONT_DISPLAY = "'DM Serif Display', Georgia, serif";
+const FONT_BODY = "'DM Sans', system-ui, sans-serif";
 
 // --- Datos curados (el "detrás de escena" del Mago de Oz) -------------------
 const DOCENTES = [
@@ -106,6 +108,18 @@ const PREGUNTAS = [
 ];
 
 // ============================================================================
+// ============================================================================
+// Hook responsive: detecta si la pantalla es de celular (< 720px)
+function useIsMobile() {
+  const [mobile, setMobile] = useState(typeof window !== "undefined" ? window.innerWidth < 720 : false);
+  useEffect(() => {
+    const onResize = () => setMobile(window.innerWidth < 720);
+    window.addEventListener("resize", onResize);
+    return () => window.removeEventListener("resize", onResize);
+  }, []);
+  return mobile;
+}
+
 export default function App() {
   const [screen, setScreen] = useState("landing"); // landing | chat | analizando | shortlist | detalle | conversion | gracias | metrics
   const [step, setStep] = useState(0);
@@ -120,7 +134,7 @@ export default function App() {
     const link = document.createElement("link");
     link.rel = "stylesheet";
     link.href =
-      "https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&family=Inter:wght@400;500;600;700&display=swap";
+      "https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700&display=swap";
     document.head.appendChild(link);
   }, []);
 
@@ -182,18 +196,19 @@ export default function App() {
 
 // --- Marco / barra superior -------------------------------------------------
 function Shell({ children, screen, reset, log }) {
+  const m = useIsMobile();
   const showProgress = ["chat", "analizando", "shortlist", "detalle", "conversion"].includes(screen);
   const order = ["chat", "analizando", "shortlist", "detalle", "conversion"];
   const idx = order.indexOf(screen);
   return (
-    <div style={{ maxWidth: 920, margin: "0 auto", padding: "0 20px 60px" }}>
-      <header style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "20px 0 14px", borderBottom: `1px solid ${C.line}`, marginBottom: 28 }}>
+    <div style={{ maxWidth: 920, margin: "0 auto", padding: m ? "0 14px 48px" : "0 20px 60px" }}>
+      <header style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "20px 0 14px", borderBottom: `1px solid ${C.line}`, marginBottom: 28, gap: 12 }}>
         <button className="btn" onClick={reset} style={{ background: "none", display: "flex", alignItems: "center", gap: 10, padding: 0 }}>
           <div style={{ width: 30, height: 30, borderRadius: 8, background: C.ink, color: C.paper, display: "grid", placeItems: "center", fontFamily: FONT_DISPLAY, fontWeight: 700, fontSize: 17 }}>E</div>
           <span style={{ fontFamily: FONT_DISPLAY, fontWeight: 600, fontSize: 19, letterSpacing: -0.3 }}>Ed-Link</span>
           <span style={{ fontSize: 11, color: C.slate, border: `1px solid ${C.line}`, padding: "2px 7px", borderRadius: 20, fontWeight: 600 }}>MVP · prototipo</span>
         </button>
-        <span style={{ fontSize: 12.5, color: C.slate, fontWeight: 500 }}>El puente entre la universidad pública y tu equipo</span>
+        {!m && <span style={{ fontSize: 12.5, color: C.slate, fontWeight: 500 }}>El puente entre la universidad pública y tu equipo</span>}
       </header>
 
       {showProgress && (
@@ -201,7 +216,7 @@ function Shell({ children, screen, reset, log }) {
           {["Diagnóstico", "Análisis", "Tu ruta", "Detalle", "Reunión"].map((p, i) => (
             <div key={p} style={{ flex: 1 }}>
               <div style={{ height: 4, borderRadius: 4, background: i <= idx ? C.brass : C.line, transition: "background .3s" }} />
-              <div style={{ fontSize: 10.5, color: i <= idx ? C.ink : C.slate, marginTop: 6, fontWeight: i === idx ? 700 : 500 }}>{p}</div>
+              <div style={{ fontSize: m ? 9 : 10.5, color: i <= idx ? C.ink : C.slate, marginTop: 6, fontWeight: i === idx ? 700 : 500, textAlign: m ? "center" : "left", lineHeight: 1.1 }}>{p}</div>
             </div>
           ))}
         </div>
@@ -214,30 +229,31 @@ function Shell({ children, screen, reset, log }) {
 
 // --- Pantalla 1: Landing ----------------------------------------------------
 function Landing({ onStart, onMetrics }) {
+  const m = useIsMobile();
   return (
     <div className="fu">
       <div style={{ display: "inline-flex", alignItems: "center", gap: 8, background: C.brassSoft, color: C.brass, padding: "6px 13px", borderRadius: 20, fontSize: 12.5, fontWeight: 600, marginBottom: 22 }}>
         <span style={{ width: 7, height: 7, borderRadius: 9, background: C.brass }} /> 91 universidades nacionales · capacidad técnica ociosa
       </div>
 
-      <h1 style={{ fontFamily: FONT_DISPLAY, fontSize: 46, lineHeight: 1.05, letterSpacing: -1, fontWeight: 600, margin: "0 0 18px", maxWidth: 720 }}>
-        Decinos qué le falta a tu equipo.<br />
-        Te armamos la ruta con un docente<br />
+      <h1 style={{ fontFamily: FONT_DISPLAY, fontSize: m ? 32 : 46, lineHeight: 1.07, letterSpacing: m ? -0.5 : -1, fontWeight: 600, margin: "0 0 18px", maxWidth: 720 }}>
+        Decinos qué le falta a tu equipo.{m ? " " : <br />}
+        Te armamos la ruta con un docente{m ? " " : <br />}
         <span style={{ color: C.brass }}>universitario que ya lo resolvió.</span>
       </h1>
 
-      <p style={{ fontSize: 17, color: C.slate, lineHeight: 1.55, maxWidth: 560, margin: "0 0 30px" }}>
+      <p style={{ fontSize: m ? 15.5 : 17, color: C.slate, lineHeight: 1.55, maxWidth: 560, margin: "0 0 30px" }}>
         Sin cursos genéricos de 8 horas. Sin instructores que no entienden tu contexto. Un diagnóstico de 1 minuto y una ruta modular contextualizada, con el aval de una universidad pública argentina.
       </p>
 
       <div style={{ display: "flex", gap: 12, alignItems: "center", flexWrap: "wrap" }}>
-        <button className="btn" onClick={onStart} style={{ background: C.ink, color: C.paper, padding: "15px 26px", borderRadius: 12, fontSize: 16, fontWeight: 600 }}>
+        <button className="btn" onClick={onStart} style={{ background: C.ink, color: C.paper, padding: "15px 26px", borderRadius: 12, fontSize: 16, fontWeight: 600, width: m ? "100%" : "auto" }}>
           Diagnosticar mi necesidad →
         </button>
         <span style={{ fontSize: 13.5, color: C.slate }}>Gratis · sin compromiso · 1 minuto</span>
       </div>
 
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 14, marginTop: 46 }}>
+      <div style={{ display: "grid", gridTemplateColumns: m ? "1fr" : "repeat(3,1fr)", gap: 14, marginTop: m ? 32 : 46 }}>
         {[
           ["Modular", "Elegí solo los módulos que tu equipo necesita. Saltá lo que ya saben."],
           ["Contextualizado", "Docentes locales que conocen tu industria, no videos envasados."],
@@ -363,11 +379,12 @@ function Analizando({ onDone }) {
 
 // --- Pantalla 4: Shortlist curada (NO swipe — ruta con trust layer) ---------
 function Shortlist({ respuestas, onPick }) {
+  const m = useIsMobile();
   return (
     <div className="fu">
       <div style={{ marginBottom: 22 }}>
-        <h2 style={{ fontFamily: FONT_DISPLAY, fontSize: 30, fontWeight: 600, letterSpacing: -0.5, margin: "0 0 8px" }}>Tu ruta recomendada</h2>
-        <p style={{ fontSize: 15, color: C.slate, margin: 0, lineHeight: 1.5 }}>
+        <h2 style={{ fontFamily: FONT_DISPLAY, fontSize: m ? 24 : 30, fontWeight: 600, letterSpacing: -0.5, margin: "0 0 8px" }}>Tu ruta recomendada</h2>
+        <p style={{ fontSize: m ? 14 : 15, color: C.slate, margin: 0, lineHeight: 1.5 }}>
           Según tu diagnóstico (<b style={{ color: C.ink }}>{respuestas.rol}</b> · {respuestas.personas} personas · {respuestas.presupuesto}),
           armamos estas opciones con universidades que ya resolvieron tu problema. Ordenadas por afinidad.
         </p>
@@ -376,13 +393,13 @@ function Shortlist({ respuestas, onPick }) {
       <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
         {DOCENTES.map((d, i) => (
           <div key={d.id} className="card-hover" onClick={() => onPick(d)}
-            style={{ background: C.card, border: `1px solid ${C.line}`, borderRadius: 16, padding: 20, cursor: "pointer", display: "flex", gap: 18, alignItems: "flex-start", position: "relative" }}>
+            style={{ background: C.card, border: `1px solid ${C.line}`, borderRadius: 16, padding: 20, cursor: "pointer", display: "flex", gap: m ? 12 : 18, alignItems: "flex-start", position: "relative", flexWrap: m ? "wrap" : "nowrap" }}>
             {i === 0 && (
-              <div style={{ position: "absolute", top: -10, left: 18, background: C.good, color: "#fff", fontSize: 11, fontWeight: 700, padding: "3px 10px", borderRadius: 20 }}>★ MEJOR AFINIDAD</div>
+              <div style={{ position: "absolute", top: -10, left: 18, background: C.zest, color: C.ink, fontSize: 11, fontWeight: 700, padding: "3px 10px", borderRadius: 20 }}>★ MEJOR AFINIDAD</div>
             )}
             <div style={{ width: 56, height: 56, borderRadius: 12, flexShrink: 0, background: d.color, color: "#fff", display: "grid", placeItems: "center", fontFamily: FONT_DISPLAY, fontWeight: 700, fontSize: 16 }}>{d.uni}</div>
 
-            <div style={{ flex: 1 }}>
+            <div style={{ flex: 1, minWidth: m ? "60%" : "auto" }}>
               <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 4 }}>
                 <h3 style={{ fontFamily: FONT_DISPLAY, fontSize: 18.5, fontWeight: 600, margin: 0, lineHeight: 1.2 }}>{d.ruta}</h3>
               </div>
@@ -390,20 +407,20 @@ function Shortlist({ respuestas, onPick }) {
 
               {/* Trust layer — reemplaza el rating Airbnb por evidencia B2B */}
               <div style={{ display: "flex", gap: 16, flexWrap: "wrap", fontSize: 12.5 }}>
-                <Stat label="Afinidad" value={`${d.match}%`} color={C.brass} />
+                <Stat label="Afinidad" value={`${d.match}%`} color={C.ink} />
                 <Stat label="Finalización" value={`${d.finalizacion}%`} color={C.good} />
                 <Stat label="Casos previos" value={d.casos} />
                 <Stat label="Formato" value={`${d.modulos} módulos · ${d.horas}h`} />
               </div>
             </div>
 
-            <div style={{ textAlign: "right", flexShrink: 0, alignSelf: "stretch", display: "flex", flexDirection: "column", justifyContent: "space-between" }}>
+            <div style={{ textAlign: m ? "left" : "right", flexShrink: 0, alignSelf: "stretch", display: "flex", flexDirection: m ? "row" : "column", justifyContent: "space-between", alignItems: m ? "center" : "flex-end", gap: m ? 10 : 0, width: m ? "100%" : "auto", borderTop: m ? `1px solid ${C.line}` : "none", paddingTop: m ? 12 : 0 }}>
               <div>
-                <div style={{ fontSize: 11, color: C.slate }}>desde</div>
-                <div style={{ fontFamily: FONT_DISPLAY, fontSize: 22, fontWeight: 700, color: C.ink }}>US${d.desde.toLocaleString("es-AR")}</div>
+                <span style={{ fontSize: 11, color: C.slate }}>desde </span>
+                <span style={{ fontFamily: FONT_DISPLAY, fontSize: 22, fontWeight: 700, color: C.ink }}>US${d.desde.toLocaleString("es-AR")}</span>
                 {d.desde < 10000 && <div style={{ fontSize: 10.5, color: C.good, fontWeight: 600 }}>✓ contratación directa</div>}
               </div>
-              <div style={{ color: C.brass, fontWeight: 600, fontSize: 13, marginTop: 12 }}>Ver ruta →</div>
+              <div style={{ color: C.brass, fontWeight: 600, fontSize: 13, marginTop: m ? 0 : 12 }}>Ver ruta →</div>
             </div>
           </div>
         ))}
@@ -426,6 +443,7 @@ function Stat({ label, value, color }) {
 
 // --- Pantalla 5: Detalle de la ruta -----------------------------------------
 function Detalle({ d, onBack, onConvert }) {
+  const m = useIsMobile();
   if (!d) return null;
   const mods = [
     { t: "Módulo 1 · Diagnóstico in situ (LNA)", d: "Un coordinador releva los cuellos de botella reales de tu operación.", opt: false },
@@ -449,7 +467,7 @@ function Detalle({ d, onBack, onConvert }) {
         <b style={{ color: C.teal }}>Por qué te la recomendamos: </b>{d.porque}
       </div>
 
-      <div style={{ display: "grid", gridTemplateColumns: "1.4fr 1fr", gap: 18 }}>
+      <div style={{ display: "grid", gridTemplateColumns: m ? "1fr" : "1.4fr 1fr", gap: 18 }}>
         <div>
           <h4 style={{ fontFamily: FONT_DISPLAY, fontSize: 16, margin: "0 0 12px" }}>Ruta modular · {d.formato}</h4>
           <div style={{ display: "flex", flexDirection: "column", gap: 9 }}>
@@ -466,7 +484,7 @@ function Detalle({ d, onBack, onConvert }) {
         </div>
 
         <div>
-          <div style={{ background: C.card, border: `1px solid ${C.line}`, borderRadius: 14, padding: 18, position: "sticky", top: 16 }}>
+          <div style={{ background: C.card, border: `1px solid ${C.line}`, borderRadius: 14, padding: 18, position: m ? "static" : "sticky", top: 16 }}>
             <div style={{ fontSize: 12, color: C.slate }}>Inversión desde</div>
             <div style={{ fontFamily: FONT_DISPLAY, fontSize: 30, fontWeight: 700 }}>US${d.desde.toLocaleString("es-AR")}</div>
             {d.desde < 10000 && <div style={{ fontSize: 12, color: C.good, fontWeight: 600, marginBottom: 12 }}>✓ Califica para contratación directa</div>}
@@ -512,14 +530,24 @@ function Conversion({ d, respuestas, onSend }) {
     if (!ok || enviando) return;
     setEnviando(true);
     setError("");
+
+    // Si todavía no configuraste Formspree, no intenta enviar: avisa y avanza.
+    if (FORMSPREE_ENDPOINT.includes("TU_ID")) {
+      console.warn("Formspree no configurado: reemplazá TU_ID por tu ID real en App.jsx");
+      onSend();
+      return;
+    }
+
     try {
-      await fetch(FORMSPREE_ENDPOINT, {
+      const res = await fetch(FORMSPREE_ENDPOINT, {
         method: "POST",
         headers: { "Content-Type": "application/json", Accept: "application/json" },
         body: JSON.stringify({
           nombre: f.nombre,
           empresa: f.empresa,
           email: f.email,
+          _replyto: f.email,
+          _subject: `Ed-Link · Nueva solicitud de reunión — ${f.empresa}`,
           ruta_elegida: d?.ruta,
           universidad: d?.sello,
           rol_diagnosticado: respuestas?.rol,
@@ -528,10 +556,18 @@ function Conversion({ d, respuestas, onSend }) {
           presupuesto: respuestas?.presupuesto,
         }),
       });
-      onSend(); // avanza a "gracias" igual aunque falle el envío, para no trabar al usuario
+
+      if (res.ok) {
+        onSend(); // éxito real
+      } else {
+        const data = await res.json().catch(() => ({}));
+        const msg = data?.errors?.map((e) => e.message).join(", ") || `Error ${res.status}`;
+        console.error("Formspree:", msg, data);
+        setError("No pudimos registrar el envío (" + msg + "). Revisá la consola.");
+      }
     } catch (e) {
-      // Si el endpoint todavía no está configurado, igual dejamos pasar al usuario.
-      onSend();
+      console.error("Error de red al enviar a Formspree:", e);
+      setError("Error de conexión. Revisá tu internet o la consola del navegador.");
     } finally {
       setEnviando(false);
     }
@@ -546,7 +582,7 @@ function Conversion({ d, respuestas, onSend }) {
       <div style={{ background: C.card, border: `1px solid ${C.line}`, borderRadius: 16, padding: 22, display: "flex", flexDirection: "column", gap: 14 }}>
         {[
           ["nombre", "Tu nombre", "Nombre y apellido"],
-   ["empresa", "Empresa", "Nombre de tu empresa"],
+          ["empresa", "Empresa", "Nombre de tu empresa"],
           ["email", "Email corporativo", "vos@empresa.com"],
         ].map(([k, label, ph]) => (
           <label key={k} style={{ display: "flex", flexDirection: "column", gap: 6 }}>
@@ -575,7 +611,8 @@ function Gracias({ d, onMetrics, onReset }) {
       <div style={{ width: 64, height: 64, margin: "0 auto 22px", borderRadius: 64, background: C.goodSoft, color: C.good, display: "grid", placeItems: "center", fontSize: 30 }}>✓</div>
       <h2 style={{ fontFamily: FONT_DISPLAY, fontSize: 28, fontWeight: 600, margin: "0 0 12px", letterSpacing: -0.4 }}>Listo. Recibimos tu solicitud.</h2>
       <p style={{ fontSize: 15.5, color: C.slate, lineHeight: 1.55, margin: "0 0 28px" }}>
-Un coordinador de <b style={{ color: C.ink }}>{d?.sello}</b> te escribe dentro de las próximas 48 horas para ajustar la ruta <b style={{ color: C.ink }}>"{d?.ruta}"</b> a tu equipo.      </p>
+        Un coordinador de <b style={{ color: C.ink }}>Ed-Link</b> te contactará dentro de las próximas 48 horas para ajustar la ruta de aprendizaje de tu equipo.
+      </p>
       <div style={{ display: "flex", gap: 12, justifyContent: "center", flexWrap: "wrap" }}>
         <button className="btn" onClick={onReset} style={{ background: C.ink, color: C.paper, padding: "12px 22px", borderRadius: 11, fontWeight: 600, fontSize: 14.5 }}>Probar otro diagnóstico</button>
         <button className="btn" onClick={onMetrics} style={{ background: C.brassSoft, color: C.brass, padding: "12px 22px", borderRadius: 11, fontWeight: 600, fontSize: 14.5 }}>Ver métricas del experimento →</button>
@@ -586,6 +623,7 @@ Un coordinador de <b style={{ color: C.ink }}>{d?.sello}</b> te escribe dentro d
 
 // --- Pantalla 8: Métricas (vista interna — sustenta el Punto III) -----------
 function Metrics({ log, onBack }) {
+  const m = useIsMobile();
   const completo = log.some((l) => l.evento === "Completó diagnóstico");
   const shortlist = log.some((l) => l.evento === "Vio shortlist");
   const convirtio = log.some((l) => l.evento.startsWith("★★"));
@@ -604,7 +642,7 @@ function Metrics({ log, onBack }) {
         Vista interna del equipo. Cada sesión de prueba registra el embudo. La <b style={{ color: C.ink }}>métrica primaria</b> es la conversión visita → solicitud de reunión.
       </p>
 
-      <div style={{ display: "grid", gridTemplateColumns: "1.2fr 1fr", gap: 18 }}>
+      <div style={{ display: "grid", gridTemplateColumns: m ? "1fr" : "1.2fr 1fr", gap: 18 }}>
         <div style={{ background: C.card, border: `1px solid ${C.line}`, borderRadius: 16, padding: 20 }}>
           <h4 style={{ fontFamily: FONT_DISPLAY, fontSize: 16, margin: "0 0 14px" }}>Embudo de esta sesión</h4>
           {funnel.map(([t, done], i) => (
