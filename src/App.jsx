@@ -116,6 +116,7 @@ const DOCENTES = [
 const EXTRA = {
   "qa-bank": {
     online: 50, presencial: 50, personas: "8–25",
+    docente: { nombre: "Ing. Marcela Ferreyra", titulo: "Docente e investigadora en testing de software", credencial: "15 años en QA bancario · UNSAM" },
     casosDetalle: [
       { empresa: "Fintech de pagos · 180 personas", quote: "El equipo de QA pasó de testing manual a automatizado en 6 semanas. Bajamos los bugs en producción a la mitad.", rol: "Gerente de Ingeniería" },
       { empresa: "Banco mayorista · 200 personas", quote: "La capacitación fue sobre nuestro propio core bancario, no sobre ejemplos genéricos. Eso cambió todo.", rol: "Líder de QA" },
@@ -124,6 +125,7 @@ const EXTRA = {
   },
   "ba-auto": {
     online: 66, presencial: 34, personas: "5–18",
+    docente: { nombre: "Lic. Diego Sosa", titulo: "Analista funcional y docente de automatización", credencial: "Ex-líder de procesos · UNAB" },
     casosDetalle: [
       { empresa: "Software factory · 120 personas", quote: "Conseguimos formar BAs con foco en automatización que el mercado no nos daba.", rol: "Head of Delivery" },
       { empresa: "Consultora IT · 70 personas", quote: "El módulo presencial sobre nuestros procesos reales fue el diferencial.", rol: "Gerente de Proyectos" },
@@ -131,12 +133,14 @@ const EXTRA = {
   },
   "data-ops": {
     online: 100, presencial: 0, personas: "4–15",
+    docente: { nombre: "Dra. Paula Giménez", titulo: "Investigadora en ciencia de datos", credencial: "Especialista en visualización · UNLP" },
     casosDetalle: [
       { empresa: "Retail · 300 personas", quote: "El equipo ganó autonomía en tableros sin depender del área de sistemas.", rol: "Jefa de Operaciones" },
     ],
   },
   "ciberseguridad": {
     online: 50, presencial: 50, personas: "6–20",
+    docente: { nombre: "Ing. Hernán Vidal", titulo: "Especialista en seguridad ofensiva", credencial: "Pentester certificado · UTN" },
     casosDetalle: [
       { empresa: "Energía · 400 personas", quote: "El ejercicio de respuesta a incidentes se hizo sobre nuestra infraestructura real. Invaluable.", rol: "CISO" },
       { empresa: "Logística · 150 personas", quote: "Pasamos de no tener prácticas de hardening a un protocolo documentado.", rol: "Líder de Infra" },
@@ -144,6 +148,7 @@ const EXTRA = {
   },
   "machine-learning": {
     online: 75, presencial: 25, personas: "5–16",
+    docente: { nombre: "Dra. Elena Gómez", titulo: "Directora de IA y Ciencia de Datos", credencial: "PhD en Cs. de la Computación · UBA" },
     casosDetalle: [
       { empresa: "Agroindustria · 250 personas", quote: "Entrenamos modelos sobre nuestros propios datos de producción y los pusimos en producción.", rol: "Director de Datos" },
       { empresa: "Fintech · 180 personas", quote: "El foco en MLOps fue clave: no quedó en teoría, llegó al deploy.", rol: "Lead Data Scientist" },
@@ -323,7 +328,7 @@ export default function App() {
         {screen === "detalle" && (
           <Detalle d={seleccion} onBack={() => setScreen("shortlist")} onConvert={() => { track(`★ Solicitó reunión: ${seleccion.uni}`); setScreen("conversion"); }} />
         )}
-        {screen === "conversion" && <Conversion d={seleccion} respuestas={respuestas} onSend={() => { track("★★ Envió solicitud (conversión)"); setScreen("gracias"); }} />}
+        {screen === "conversion" && <Conversion d={seleccion} respuestas={respuestas} onBack={() => setScreen("detalle")} onSend={() => { track("★★ Envió solicitud (conversión)"); setScreen("gracias"); }} />}
         {screen === "gracias" && <Gracias d={seleccion} onMetrics={() => setScreen("metrics")} onReset={reset} />}
         {screen === "metrics" && <Metrics log={log} onBack={() => setScreen("landing")} />}
       </Shell>
@@ -602,7 +607,15 @@ function Shortlist({ respuestas, onPick }) {
               <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 4 }}>
                 <h3 style={{ fontFamily: FONT_DISPLAY, fontSize: 18.5, fontWeight: 600, margin: 0, lineHeight: 1.2 }}>{d.ruta}</h3>
               </div>
-              <div style={{ fontSize: 12.5, color: C.slate, marginBottom: 10 }}>{d.sello} · {d.coordinador}</div>
+              {EXTRA[d.id]?.docente && (
+                <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}>
+                  <div style={{ width: 26, height: 26, borderRadius: 26, flexShrink: 0, background: d.color, color: "#fff", display: "grid", placeItems: "center", fontSize: 11, fontWeight: 700 }}>
+                    {EXTRA[d.id].docente.nombre.split(" ").slice(-2).map((w) => w[0]).join("")}
+                  </div>
+                  <span style={{ fontSize: 13, fontWeight: 600, color: C.ink }}>{EXTRA[d.id].docente.nombre}</span>
+                </div>
+              )}
+              <div style={{ fontSize: 12, color: C.slate, marginBottom: 10 }}>Aval institucional: {d.sello}</div>
 
               {/* Trust layer — reemplaza el rating Airbnb por evidencia B2B */}
               <div style={{ display: "flex", gap: 16, flexWrap: "wrap", fontSize: 12.5 }}>
@@ -668,6 +681,20 @@ function Detalle({ d, onBack, onConvert }) {
       <div style={{ background: C.tealSoft, border: `1px solid ${C.teal}33`, borderRadius: 12, padding: "13px 16px", margin: "18px 0", fontSize: 14, lineHeight: 1.5 }}>
         <b style={{ color: C.teal }}>Por qué te la recomendamos: </b>{d.porque}
       </div>
+
+      {ex.docente && (
+        <div style={{ display: "flex", alignItems: "center", gap: 14, background: C.card, border: `1px solid ${C.line}`, borderRadius: 14, padding: "16px 18px", marginBottom: 18 }}>
+          <div style={{ width: 52, height: 52, borderRadius: 52, flexShrink: 0, background: d.color, color: "#fff", display: "grid", placeItems: "center", fontFamily: FONT_DISPLAY, fontWeight: 700, fontSize: 18 }}>
+            {ex.docente.nombre.split(" ").slice(-2).map((w) => w[0]).join("")}
+          </div>
+          <div style={{ flex: 1 }}>
+            <div style={{ fontSize: 11, color: C.brass, fontWeight: 700, letterSpacing: 0.3, textTransform: "uppercase", marginBottom: 2 }}>Docente a cargo</div>
+            <div style={{ fontFamily: FONT_DISPLAY, fontSize: 18, fontWeight: 600, lineHeight: 1.1 }}>{ex.docente.nombre}</div>
+            <div style={{ fontSize: 13, color: C.slate, marginTop: 2 }}>{ex.docente.titulo}</div>
+            <div style={{ fontSize: 12, color: C.ink, marginTop: 4, fontWeight: 600 }}>{ex.docente.credencial}</div>
+          </div>
+        </div>
+      )}
 
       {/* Modalidad híbrida + personas + casos verificados */}
       <div style={{ display: "flex", gap: 12, flexWrap: "wrap", marginBottom: 18 }}>
@@ -765,7 +792,7 @@ function Row({ k, v }) {
 // REEMPLAZÁ "TU_ID" por tu ID de formulario de https://formspree.io (gratis).
 const FORMSPREE_ENDPOINT = "https://formspree.io/f/xaqgbvzp";
 
-function Conversion({ d, respuestas, onSend }) {
+function Conversion({ d, respuestas, onBack, onSend }) {
   const [f, setF] = useState({ nombre: "", empresa: "", email: "" });
   const [enviando, setEnviando] = useState(false);
   const [error, setError] = useState("");
@@ -817,6 +844,7 @@ function Conversion({ d, respuestas, onSend }) {
 
   return (
     <div className="fu" style={{ maxWidth: 520, margin: "0 auto" }}>
+      <button className="btn" onClick={onBack} style={{ background: "none", color: C.slate, fontSize: 13.5, padding: 0, marginBottom: 16, fontWeight: 600 }}>← Volver a la ruta</button>
       <h2 style={{ fontFamily: FONT_DISPLAY, fontSize: 26, fontWeight: 600, letterSpacing: -0.4, margin: "0 0 6px" }}>Coordinemos una reunión</h2>
       <p style={{ fontSize: 14.5, color: C.slate, margin: "0 0 22px", lineHeight: 1.5 }}>
         Un coordinador de <b style={{ color: C.ink }}>Ed-Link</b> te contactará para ajustar la ruta de aprendizaje a tu equipo.
