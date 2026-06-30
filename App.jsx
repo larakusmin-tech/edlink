@@ -111,6 +111,63 @@ const DOCENTES = [
   },
 ];
 
+// Enriquecimiento por ruta (id): split híbrido, personas sugeridas y casos verificados.
+// Reemplaza el rating de usuarios por evidencia institucional (coherente con la investigación).
+const EXTRA = {
+  "qa-bank": {
+    online: 50, presencial: 50, personas: "8–25",
+    casosDetalle: [
+      { empresa: "Fintech de pagos · 180 personas", quote: "El equipo de QA pasó de testing manual a automatizado en 6 semanas. Bajamos los bugs en producción a la mitad.", rol: "Gerente de Ingeniería" },
+      { empresa: "Banco mayorista · 200 personas", quote: "La capacitación fue sobre nuestro propio core bancario, no sobre ejemplos genéricos. Eso cambió todo.", rol: "Líder de QA" },
+      { empresa: "Procesadora de tarjetas · 90 personas", quote: "Lo presencial in situ con el docente resolvió dudas que ningún curso online nos había podido cerrar.", rol: "Coord. de Testing" },
+    ],
+  },
+  "ba-auto": {
+    online: 66, presencial: 34, personas: "5–18",
+    casosDetalle: [
+      { empresa: "Software factory · 120 personas", quote: "Conseguimos formar BAs con foco en automatización que el mercado no nos daba.", rol: "Head of Delivery" },
+      { empresa: "Consultora IT · 70 personas", quote: "El módulo presencial sobre nuestros procesos reales fue el diferencial.", rol: "Gerente de Proyectos" },
+    ],
+  },
+  "data-ops": {
+    online: 100, presencial: 0, personas: "4–15",
+    casosDetalle: [
+      { empresa: "Retail · 300 personas", quote: "El equipo ganó autonomía en tableros sin depender del área de sistemas.", rol: "Jefa de Operaciones" },
+    ],
+  },
+  "ciberseguridad": {
+    online: 50, presencial: 50, personas: "6–20",
+    casosDetalle: [
+      { empresa: "Energía · 400 personas", quote: "El ejercicio de respuesta a incidentes se hizo sobre nuestra infraestructura real. Invaluable.", rol: "CISO" },
+      { empresa: "Logística · 150 personas", quote: "Pasamos de no tener prácticas de hardening a un protocolo documentado.", rol: "Líder de Infra" },
+    ],
+  },
+  "machine-learning": {
+    online: 75, presencial: 25, personas: "5–16",
+    casosDetalle: [
+      { empresa: "Agroindustria · 250 personas", quote: "Entrenamos modelos sobre nuestros propios datos de producción y los pusimos en producción.", rol: "Director de Datos" },
+      { empresa: "Fintech · 180 personas", quote: "El foco en MLOps fue clave: no quedó en teoría, llegó al deploy.", rol: "Lead Data Scientist" },
+    ],
+  },
+};
+
+// Modelo de negocio: suscripción mensual por equipo (no pago único).
+// El "desde" del catálogo representa el valor anual del trayecto;
+// lo dividimos en 12 para mostrar el abono mensual por equipo.
+const MESES_SUSCRIPCION = 12;
+function mensual(montoAnual) {
+  return Math.round(montoAnual / MESES_SUSCRIPCION / 10) * 10; // redondeo a la decena
+}
+
+// Etiqueta de modalidad híbrida según el split online/presencial.
+function splitLabel(id) {
+  const e = EXTRA[id];
+  if (!e) return "Híbrido";
+  if (e.presencial === 0) return "100% online";
+  if (e.online === 0) return "100% presencial";
+  return `${e.online}% online · ${e.presencial}% presencial`;
+}
+
 // Mapea cada rol del diagnóstico a las rutas relevantes (IDs del catálogo).
 // El orden define cuál aparece como "mejor afinidad".
 const RUTAS_POR_ROL = {
@@ -119,14 +176,26 @@ const RUTAS_POR_ROL = {
   "Datos / Reporting": ["data-ops", "machine-learning", "ba-auto"],
   "Ciberseguridad": ["ciberseguridad", "qa-bank", "data-ops"],
   "Machine Learning": ["machine-learning", "data-ops", "ciberseguridad"],
+  "Automatización e IA en procesos": ["machine-learning", "data-ops", "ba-auto"],
   "Otro perfil técnico": ["qa-bank", "ba-auto", "data-ops"],
 };
 
 const PREGUNTAS = [
   {
     k: "rol",
-    bot: "Hola 👋 Soy el asistente de diagnóstico de Ed-Link. En 4 preguntas te armo una ruta de capacitación a medida con aval de una universidad nacional. Para empezar: ¿qué rol o equipo necesitás fortalecer?",
-    opciones: ["QA / Testing", "Business Analysis", "Datos / Reporting", "Ciberseguridad", "Machine Learning", "Otro perfil técnico"],
+    bot: "Hola 👋 Soy el asistente de diagnóstico de Ed-Link. Estoy aquí para ayudarte a relevar los desafíos de tu área y conectarlos con la capacidad científica y académica de las Universidades Nacionales.\n\nA través de unas breves preguntas, identificaremos el núcleo de tu necesidad para estructurar la primera etapa de una propuesta formativa situada en tu contexto real. Para empezar: ¿qué rol o equipo operativo necesitás fortalecer hoy?",
+    opciones: ["QA / Testing", "Business Analysis", "Datos / Reporting", "Ciberseguridad", "Machine Learning", "Automatización e IA en procesos", "Otro perfil técnico"],
+    rama: {
+      "Automatización e IA en procesos": {
+        k: "enfoque_ia",
+        bot: "Muy bien. La incorporación de IA puede abordarse desde distintos ángulos. ¿Cuál describe mejor lo que tu equipo necesita?",
+        opciones: [
+          "Automatización de procesos: reemplazar tareas manuales y repetitivas por flujos automáticos.",
+          "Orquestación con IA: coordinar herramientas, datos y modelos en un proceso integrado de punta a punta.",
+          "Uso optimizado de IA en procesos: que el equipo aproveche mejor las herramientas de IA que ya usa en el día a día.",
+        ],
+      },
+    },
   },
   {
     k: "brecha",
@@ -137,6 +206,33 @@ const PREGUNTAS = [
       "El equipo quedó desactualizado en una tecnología",
       "Los cursos genéricos no aplican a nuestro contexto",
     ],
+    // Sub-preguntas ramificadas según la respuesta elegida.
+    rama: {
+      "No consigo el perfil en el mercado": {
+        k: "detalle_brecha",
+        bot: "Perfecto. Pensando en una intervención a medida con una Universidad Nacional, ayudanos a completar esta frase:\n\n'Al día siguiente de la capacitación, necesito que mi equipo empiece a...'",
+        input: "Ej: cargar bien los remitos, usar el CRM, reportar las fallas a tiempo",
+      },
+      "El equipo quedó desactualizado en una tecnología": {
+        k: "escenario_tech",
+        bot: "Entendido. La actualización tecnológica puede impactar de muchas formas. Para ayudarnos a calibrar la intervención de la Universidad, describinos brevemente cuál de estos escenarios refleja mejor la realidad de tu equipo hoy:",
+        opciones: [
+          "Adopción: tienen la tecnología pero les cuesta incorporar las nuevas funciones en el día a día.",
+          "Desfasaje técnico: el mercado o los clientes les exigen habilidades que el equipo hoy no domina.",
+          "Procesos: la herramienta funciona, pero la forma de trabajar del equipo quedó lenta u obsoleta.",
+          "Otros",
+        ],
+        // Sub-rama de segundo nivel para "Otros".
+        rama: {
+          "Otros": {
+            k: "detalle_otros",
+            bot: "Entendido. En las organizaciones los desafíos técnicos suelen cruzarse con los procesos y las personas. Para poder orientar este diagnóstico:\n\nContanos en una sola frase: ¿cuál es esa tarea, sistema o máquina donde tu equipo hoy se traba y necesitás que destrabemos en conjunto?",
+            input: "Mantenelo en menos de 140 caracteres para procesarlo rápido",
+            maxLength: 140,
+          },
+        },
+      },
+    },
   },
   {
     k: "personas",
@@ -209,13 +305,11 @@ export default function App() {
         {screen === "landing" && <Landing onStart={() => { track("Inició diagnóstico"); setScreen("chat"); }} onMetrics={() => setScreen("metrics")} />}
         {screen === "chat" && (
           <Chat
-            step={step}
-            respuestas={respuestas}
-            onAnswer={(k, v) => {
-              setRespuestas((r) => ({ ...r, [k]: v }));
-              track(`Respondió ${k}: ${v}`);
-              if (step < PREGUNTAS.length - 1) setStep(step + 1);
-              else { track("Completó diagnóstico"); setScreen("analizando"); }
+            onComplete={(rtas) => {
+              setRespuestas(rtas);
+              Object.entries(rtas).forEach(([k, v]) => track(`Respondió ${k}: ${v}`));
+              track("Completó diagnóstico");
+              setScreen("analizando");
             }}
           />
         )}
@@ -317,42 +411,100 @@ function Landing({ onStart, onMetrics }) {
 }
 
 // --- Pantalla 2: Chatbot de diagnóstico (el "bot" Wizard of Oz) -------------
-function Chat({ step, respuestas, onAnswer }) {
-  const q = PREGUNTAS[step];
+function Chat({ onComplete }) {
+  const m = useIsMobile();
+  // Cola de pasos pendientes (puede crecer con sub-preguntas).
+  const [cola, setCola] = useState([PREGUNTAS[0], PREGUNTAS[1], PREGUNTAS[2], PREGUNTAS[3]]);
+  const [idx, setIdx] = useState(0);
+  const [respuestas, setRespuestas] = useState({});
+  const [historial, setHistorial] = useState([]); // {bot, me}
   const [typing, setTyping] = useState(true);
+  const [texto, setTexto] = useState("");
   const endRef = useRef(null);
+
+  const q = cola[idx];
+
   useEffect(() => {
     setTyping(true);
-    const t = setTimeout(() => setTyping(false), 850);
+    setTexto("");
+    const t = setTimeout(() => setTyping(false), 750);
     return () => clearTimeout(t);
-  }, [step]);
-  useEffect(() => { endRef.current?.scrollIntoView({ behavior: "smooth" }); }, [typing]);
+  }, [idx]);
 
-  const prev = PREGUNTAS.slice(0, step);
+  useEffect(() => { endRef.current?.scrollIntoView({ behavior: "smooth" }); }, [typing, historial]);
+
+  const avanzar = (valor) => {
+    const nuevasRtas = { ...respuestas, [q.k]: valor };
+    setRespuestas(nuevasRtas);
+    setHistorial((h) => [...h, { bot: q.bot, me: valor }]);
+
+    // ¿La opción elegida dispara una sub-pregunta?
+    const sub = q.rama && q.rama[valor];
+    let nuevaCola = [...cola];
+    if (sub) {
+      // Insertar la sub-pregunta justo después de la actual.
+      nuevaCola.splice(idx + 1, 0, sub);
+      setCola(nuevaCola);
+    }
+
+    if (idx < nuevaCola.length - 1) {
+      setIdx(idx + 1);
+    } else {
+      onComplete(nuevasRtas);
+    }
+  };
+
+  const enviarTexto = () => {
+    const v = texto.trim();
+    if (!v) return;
+    avanzar(v);
+  };
+
+  const esInput = q?.input;
 
   return (
     <div className="fu" style={{ maxWidth: 640, margin: "0 auto" }}>
-      <div style={{ background: C.card, border: `1px solid ${C.line}`, borderRadius: 18, overflow: "hidden", boxShadow: "0 8px 30px rgba(19,33,46,.06)" }}>
+      <div style={{ background: C.card, border: `1px solid ${C.line}`, borderRadius: 18, overflow: "hidden", boxShadow: "0 8px 30px rgba(27,38,63,.07)" }}>
         <div style={{ background: C.ink, color: C.paper, padding: "13px 18px", display: "flex", alignItems: "center", gap: 10 }}>
-          <div style={{ width: 9, height: 9, borderRadius: 9, background: C.teal }} />
+          <div style={{ width: 9, height: 9, borderRadius: 9, background: C.zest }} />
           <span style={{ fontWeight: 600, fontSize: 14 }}>Asistente de diagnóstico</span>
           <span style={{ marginLeft: "auto", fontSize: 11.5, opacity: .7 }}>Levantamiento de necesidades (LNA)</span>
         </div>
 
         <div style={{ padding: "22px 20px", minHeight: 320, display: "flex", flexDirection: "column", gap: 14 }}>
-          {prev.map((pq, i) => (
+          {historial.map((h, i) => (
             <div key={i}>
-              <Bubble who="bot">{pq.bot}</Bubble>
-              <Bubble who="me">{respuestas[pq.k]}</Bubble>
+              <Bubble who="bot">{h.bot}</Bubble>
+              <Bubble who="me">{h.me}</Bubble>
             </div>
           ))}
 
           <Bubble who="bot">{typing ? <Typing /> : q.bot}</Bubble>
 
-          {!typing && (
+          {!typing && esInput && (
+            <div className="fu" style={{ display: "flex", flexDirection: "column", gap: 8, marginTop: 4 }}>
+              <textarea
+                value={texto}
+                onChange={(e) => setTexto(e.target.value)}
+                maxLength={q.maxLength || 280}
+                placeholder={q.input}
+                rows={2}
+                style={{ padding: "11px 13px", borderRadius: 11, border: `1.5px solid ${C.line}`, fontSize: 14, fontFamily: FONT_BODY, color: C.ink, background: C.paper, outline: "none", resize: "none" }}
+              />
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                {q.maxLength && <span style={{ fontSize: 11, color: C.slate }}>{texto.length}/{q.maxLength}</span>}
+                <button className="btn" onClick={enviarTexto} disabled={!texto.trim()}
+                  style={{ marginLeft: "auto", background: texto.trim() ? C.ink : C.line, color: texto.trim() ? C.paper : C.slate, border: "none", borderRadius: 10, padding: "9px 18px", fontSize: 14, fontWeight: 600, cursor: texto.trim() ? "pointer" : "not-allowed" }}>
+                  Continuar →
+                </button>
+              </div>
+            </div>
+          )}
+
+          {!typing && !esInput && (
             <div className="fu" style={{ display: "flex", flexWrap: "wrap", gap: 9, marginTop: 4 }}>
               {q.opciones.map((o) => (
-                <button key={o} className="btn opt" onClick={() => onAnswer(q.k, o)}
+                <button key={o} className="btn opt" onClick={() => avanzar(o)}
                   style={{ background: C.card, color: C.ink, border: `1.5px solid ${C.line}`, borderRadius: 11, padding: "11px 15px", fontSize: 14, fontWeight: 500, textAlign: "left" }}>
                   {o}
                 </button>
@@ -363,7 +515,7 @@ function Chat({ step, respuestas, onAnswer }) {
         </div>
       </div>
       <p style={{ textAlign: "center", fontSize: 12, color: C.slate, marginTop: 14 }}>
-        Pregunta {step + 1} de {PREGUNTAS.length}
+        Diagnóstico en curso · paso {idx + 1}
       </p>
     </div>
   );
@@ -377,6 +529,7 @@ function Bubble({ who, children }) {
         maxWidth: "85%", padding: "11px 15px", borderRadius: 14, fontSize: 14.5, lineHeight: 1.5,
         background: me ? C.ink : C.brassSoft, color: me ? C.paper : C.ink,
         borderBottomRightRadius: me ? 4 : 14, borderBottomLeftRadius: me ? 14 : 4, fontWeight: me ? 600 : 400,
+        whiteSpace: "pre-wrap",
       }}>{children}</div>
     </div>
   );
@@ -455,15 +608,16 @@ function Shortlist({ respuestas, onPick }) {
               <div style={{ display: "flex", gap: 16, flexWrap: "wrap", fontSize: 12.5 }}>
                 <Stat label="Afinidad" value={`${d.match}%`} color={C.ink} />
                 <Stat label="Finalización" value={`${d.finalizacion}%`} color={C.good} />
-                <Stat label="Casos previos" value={d.casos} />
-                <Stat label="Formato" value={`${d.modulos} módulos · ${d.horas}h`} />
+                <Stat label="Para equipos de" value={`${EXTRA[d.id]?.personas || "—"} pers.`} />
+                <Stat label="Modalidad" value={splitLabel(d.id)} />
               </div>
             </div>
 
             <div style={{ textAlign: m ? "left" : "right", flexShrink: 0, alignSelf: "stretch", display: "flex", flexDirection: m ? "row" : "column", justifyContent: "space-between", alignItems: m ? "center" : "flex-end", gap: m ? 10 : 0, width: m ? "100%" : "auto", borderTop: m ? `1px solid ${C.line}` : "none", paddingTop: m ? 12 : 0 }}>
               <div>
                 <span style={{ fontSize: 11, color: C.slate }}>desde </span>
-                <span style={{ fontFamily: FONT_DISPLAY, fontSize: 22, fontWeight: 700, color: C.ink }}>US${d.desde.toLocaleString("es-AR")}</span>
+                <span style={{ fontFamily: FONT_DISPLAY, fontSize: 22, fontWeight: 700, color: C.ink }}>US${mensual(d.desde).toLocaleString("es-AR")}</span>
+                <span style={{ fontSize: 11, color: C.slate }}>/mes</span>
                 {d.desde < 10000 && <div style={{ fontSize: 10.5, color: C.good, fontWeight: 600 }}>✓ contratación directa</div>}
               </div>
               <div style={{ color: C.brass, fontWeight: 600, fontSize: 13, marginTop: m ? 0 : 12 }}>Ver ruta →</div>
@@ -490,7 +644,9 @@ function Stat({ label, value, color }) {
 // --- Pantalla 5: Detalle de la ruta -----------------------------------------
 function Detalle({ d, onBack, onConvert }) {
   const m = useIsMobile();
+  const [casosAbiertos, setCasosAbiertos] = useState(false);
   if (!d) return null;
+  const ex = EXTRA[d.id] || {};
   const mods = [
     { t: "Módulo 1 · Diagnóstico in situ (LNA)", d: "Un coordinador releva los cuellos de botella reales de tu operación.", opt: false },
     { t: "Módulo 2 · Fundamentos contextualizados", d: "Teoría aplicada a tus sistemas y datos reales. Saltable si tu equipo ya domina la base.", opt: true },
@@ -513,6 +669,48 @@ function Detalle({ d, onBack, onConvert }) {
         <b style={{ color: C.teal }}>Por qué te la recomendamos: </b>{d.porque}
       </div>
 
+      {/* Modalidad híbrida + personas + casos verificados */}
+      <div style={{ display: "flex", gap: 12, flexWrap: "wrap", marginBottom: 18 }}>
+        <div style={{ flex: m ? "1 1 100%" : 1, minWidth: 220, background: C.card, border: `1px solid ${C.line}`, borderRadius: 12, padding: "13px 15px" }}>
+          <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12, marginBottom: 7 }}>
+            <span style={{ color: C.slate }}>Modalidad híbrida</span>
+            <span style={{ fontWeight: 700, color: C.ink }}>{splitLabel(d.id)}</span>
+          </div>
+          <div style={{ display: "flex", height: 8, borderRadius: 8, overflow: "hidden", background: C.line }}>
+            <div style={{ width: `${ex.online || 0}%`, background: C.wisteria }} />
+            <div style={{ width: `${ex.presencial || 0}%`, background: C.teal }} />
+          </div>
+          <div style={{ display: "flex", gap: 14, marginTop: 8, fontSize: 11, color: C.slate }}>
+            <span><span style={{ display: "inline-block", width: 8, height: 8, borderRadius: 8, background: C.wisteria, marginRight: 5 }} />Online</span>
+            <span><span style={{ display: "inline-block", width: 8, height: 8, borderRadius: 8, background: C.teal, marginRight: 5 }} />Presencial in situ</span>
+            <span style={{ marginLeft: "auto", color: C.ink, fontWeight: 600 }}>Equipos de {ex.personas} personas</span>
+          </div>
+        </div>
+      </div>
+
+      {ex.casosDetalle && ex.casosDetalle.length > 0 && (
+        <div style={{ marginBottom: 18 }}>
+          <button className="btn" onClick={() => setCasosAbiertos(!casosAbiertos)}
+            style={{ width: "100%", background: casosAbiertos ? C.ink : C.card, color: casosAbiertos ? C.paper : C.ink, border: `1.5px solid ${casosAbiertos ? C.ink : C.line}`, borderRadius: 12, padding: "13px 16px", fontSize: 14, fontWeight: 600, textAlign: "left", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+            <span>✓ {ex.casosDetalle.length} {ex.casosDetalle.length === 1 ? "empresa capacitada" : "empresas capacitadas"} — ver casos verificados</span>
+            <span>{casosAbiertos ? "▲" : "▼"}</span>
+          </button>
+          {casosAbiertos && (
+            <div className="fu" style={{ display: "flex", flexDirection: "column", gap: 10, marginTop: 10 }}>
+              {ex.casosDetalle.map((c, i) => (
+                <div key={i} style={{ background: C.card, border: `1px solid ${C.line}`, borderLeft: `3px solid ${C.teal}`, borderRadius: 10, padding: "13px 16px" }}>
+                  <div style={{ fontSize: 14.5, lineHeight: 1.5, color: C.ink, fontStyle: "italic" }}>"{c.quote}"</div>
+                  <div style={{ fontSize: 12, color: C.slate, marginTop: 8, fontWeight: 600 }}>{c.rol} · {c.empresa}</div>
+                </div>
+              ))}
+              <div style={{ fontSize: 11, color: C.slate, textAlign: "center", marginTop: 2 }}>
+                Casos verificados por Ed-Link. Identidad de las empresas reservada por confidencialidad.
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
       <div style={{ display: "grid", gridTemplateColumns: m ? "1fr" : "1.4fr 1fr", gap: 18 }}>
         <div>
           <h4 style={{ fontFamily: FONT_DISPLAY, fontSize: 16, margin: "0 0 12px" }}>Ruta modular · {d.formato}</h4>
@@ -531,9 +729,10 @@ function Detalle({ d, onBack, onConvert }) {
 
         <div>
           <div style={{ background: C.card, border: `1px solid ${C.line}`, borderRadius: 14, padding: 18, position: m ? "static" : "sticky", top: 16 }}>
-            <div style={{ fontSize: 12, color: C.slate }}>Inversión desde</div>
-            <div style={{ fontFamily: FONT_DISPLAY, fontSize: 30, fontWeight: 700 }}>US${d.desde.toLocaleString("es-AR")}</div>
-            {d.desde < 10000 && <div style={{ fontSize: 12, color: C.good, fontWeight: 600, marginBottom: 12 }}>✓ Califica para contratación directa</div>}
+            <div style={{ fontSize: 12, color: C.slate }}>Suscripción mensual por equipo</div>
+            <div style={{ fontFamily: FONT_DISPLAY, fontSize: 30, fontWeight: 700 }}>US${mensual(d.desde).toLocaleString("es-AR")}<span style={{ fontSize: 15, color: C.slate, fontWeight: 400 }}>/mes</span></div>
+            <div style={{ fontSize: 11.5, color: C.slate, marginTop: 2 }}>Equivale a US${d.desde.toLocaleString("es-AR")}/año · facturación recurrente</div>
+            {d.desde < 10000 && <div style={{ fontSize: 12, color: C.good, fontWeight: 600, marginTop: 6, marginBottom: 12 }}>✓ Bajo el umbral de USD 10.000 anuales: contratación directa</div>}
 
             <div style={{ borderTop: `1px solid ${C.line}`, margin: "12px 0", paddingTop: 12, display: "flex", flexDirection: "column", gap: 9, fontSize: 13 }}>
               <Row k="Afinidad con tu caso" v={`${d.match}%`} />
