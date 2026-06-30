@@ -620,7 +620,7 @@ function Conversion({ d, respuestas, onSend }) {
     <div className="fu" style={{ maxWidth: 520, margin: "0 auto" }}>
       <h2 style={{ fontFamily: FONT_DISPLAY, fontSize: 26, fontWeight: 600, letterSpacing: -0.4, margin: "0 0 6px" }}>Coordinemos una reunión</h2>
       <p style={{ fontSize: 14.5, color: C.slate, margin: "0 0 22px", lineHeight: 1.5 }}>
-        Un coordinador de <b style={{ color: C.ink }}>{d?.sello}</b> te contacta para ajustar la ruta a tu operación.
+        Un coordinador de <b style={{ color: C.ink }}>Ed-Link</b> te contactará para ajustar la ruta de aprendizaje a tu equipo.
       </p>
       <div style={{ background: C.card, border: `1px solid ${C.line}`, borderRadius: 16, padding: 22, display: "flex", flexDirection: "column", gap: 14 }}>
         {[
