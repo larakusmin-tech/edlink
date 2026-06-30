@@ -288,8 +288,8 @@ const PREGUNTAS = [
   },
   {
     k: "presupuesto",
-    bot: "Última pregunta. ¿Con qué marco de presupuesto anual estás trabajando? (Esto define si entrás por contratación directa o compulsa.)",
-    opciones: ["Menos de USD 10.000", "USD 10.000 – 25.000", "Más de USD 25.000", "Todavía no lo sé"],
+    bot: "Última pregunta. ¿Con qué marco de presupuesto anual estás trabajando para capacitación? (Nos ayuda a sugerirte el plan más adecuado.)",
+    opciones: ["Hasta USD 5.000", "USD 5.000 – 10.000", "USD 10.000 – 20.000", "Más de USD 20.000", "Todavía no lo sé"],
   },
 ];
 
@@ -770,7 +770,7 @@ function Planes({ planActivo, onElegir, onBack }) {
       </div>
 
       <p style={{ fontSize: 11.5, color: C.slate, marginTop: 18, textAlign: "center" }}>
-        Los créditos no usados pueden trasladarse al ciclo siguiente. Los planes por debajo de USD 10.000 anuales califican para contratación directa.
+        Los créditos no usados pueden trasladarse al ciclo siguiente. Podés cambiar de plan en cualquier momento del ciclo.
       </p>
     </div>
   );
