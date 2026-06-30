@@ -279,6 +279,11 @@ const PREGUNTAS = [
           },
         },
       },
+      "Los cursos genéricos no aplican a nuestro contexto": {
+        k: "detalle_generico",
+        bot: "Exacto, por eso no creemos en los enlatados. Pensando en tu día a día, ¿cuál es la herramienta, software, máquina o proceso interno que tu equipo maneja hoy y en donde sentís que se traban o cometen más errores por falta de un entrenamiento a medida?",
+        input: "Ej: el ERP propio, una línea de producción, el sistema de gestión interno…",
+      },
     },
   },
   {
@@ -288,8 +293,8 @@ const PREGUNTAS = [
   },
   {
     k: "presupuesto",
-    bot: "Última pregunta. ¿Con qué marco de presupuesto anual estás trabajando para capacitación? (Nos ayuda a sugerirte el plan más adecuado.)",
-    opciones: ["Hasta USD 5.000", "USD 5.000 – 10.000", "USD 10.000 – 20.000", "Más de USD 20.000", "Todavía no lo sé"],
+    bot: "Última pregunta. ¿Con qué presupuesto anual contás para capacitación? (Nos ayuda a sugerirte el plan de suscripción más adecuado.)",
+    opciones: ["Hasta USD 5.000 (Starter)", "USD 5.000 – 10.000 (Professional)", "Más de USD 10.000 (Enterprise)", "Todavía no lo defino"],
   },
 ];
 
