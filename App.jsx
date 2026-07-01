@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
+import { Analytics } from "@vercel/analytics/react";
 
 // ============================================================================
 // ED-LINK · MVP NAVEGABLE (Wizard of Oz)
@@ -923,5 +924,6 @@ function Metrics({ log, onBack }) {
         </div>
       </div>
     </div>
+    <Analytics />
   );
 }
